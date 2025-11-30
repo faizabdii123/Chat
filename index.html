@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <title>Chat Secretly by Faiz v2.0</title>
+    
+    <!-- Tailwind & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        glass: "rgba(255, 255, 255, 0.08)",
+                        glassBorder: "rgba(255, 255, 255, 0.1)",
+                        primary: "#6366f1", // Indigo
+                        accent: "#ec4899"   // Pink
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'blob': 'blob 7s infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* CORE RESET */
+        html, body {
+            height: 100%; width: 100%; margin: 0; padding: 0;
+            overflow: hidden; 
+            background: #0f172a;
+            color: #fff;
+        }
+
+        /* DYNAMIC BACKGROUND */
+        .bg-cosmic {
+            position: fixed; inset: 0; z-index: -2;
+            background: radial-gradient(circle at top left, #1e1b4b, #0f172a);
+        }
+        
+        .orb {
+            position: absolute; border-radius: 50%;
+            filter: blur(80px); opacity: 0.6;
+            animation: blob 10s infinite alternate;
+        }
+        .orb-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #4f46e5; animation-delay: 0s; }
+        .orb-2 { bottom: -10%; right: -10%; width: 50vw; height: 50vw; background: #be185d; animation-delay: 2s; }
+        .orb-3 { top: 40%; left: 40%; width: 30vw; height: 30vw; background: #0891b2; opacity: 0.4; animation-delay: 4s; }
+
+        /* MAIN CONTAINER */
+        #app-wrapper {
+            position: relative; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #app-root {
+            position: relative; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* DESKTOP MODE */
+        @media (min-width: 768px) {
+            #app-root {
+                width: 400px; height: 85vh;
+                border-radius: 24px;
+                border: 1px solid rgba(255,255,255,0.1);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        /* SCROLLBAR */
+        .chat-scroll::-webkit-scrollbar { width: 4px; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+
+        /* ANIMATIONS */
+        .msg-enter { animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* CUSTOM UTILS */
+        .glass-panel { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-input { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.1); }
+        
+        .avatar-initials {
+            font-size: 10px; font-weight: 700; color: white;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BACKGROUND -->
+    <div class="bg-cosmic"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <div id="app-wrapper">
+        <div id="app-root">
+            
+            <!-- HEADER -->
+            <div class="h-16 shrink-0 flex items-center justify-between px-4 border-b border-white/10 bg-black/10 backdrop-blur-md z-20">
+                <div class="flex items-center gap-3">
+                    <div class="relative group cursor-pointer">
+                        <div class="w-10 h-10 rounded-full p-[2px] bg-gradient-to-tr from-cyan-400 to-purple-500">
+                            <img src="https://raw.githubusercontent.com/faizabdii123/Image/f22a685a540a28515b38b320ee982675e7087236/1763968977259.jpg" 
+                                 class="w-full h-full rounded-full object-cover border-2 border-slate-900" alt="logo">
+                        </div>
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-base tracking-tight text-white">MyAfchat</span>
+                        <span class="text-[10px] text-cyan-400 font-medium tracking-wide">V2.0 LIVE</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1">
+                    <button onclick="startCall()" class="w-9 h-9 rounded-full bg-white/5 hover:bg-green-500/20 text-white/80 hover:text-green-400 transition flex items-center justify-center">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button onclick="clearChat()" class="w-9 h-9 rounded-full bg-white/5 hover:bg-red-500/20 text-white/80 hover:text-red-400 transition flex items-center justify-center">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- CHAT FEED -->
+            <div id="chat-feed" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll scroll-smooth relative">
+                <!-- Messages injected here -->
+            </div>
+
+            <!-- INPUT AREA -->
+            <div class="p-4 shrink-0 bg-gradient-to-t from-slate-900/80 to-transparent">
+                <form onsubmit="sendMessage(event)" class="relative flex items-center gap-2 bg-slate-800/50 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-lg">
+                    
+                    <label class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-cyan-400 cursor-pointer transition shrink-0">
+                        <i class="fas fa-plus transform hover:rotate-90 transition duration-300"></i>
+                        <input type="file" id="img-input" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
+                    </label>
+
+                    <input type="text" id="msg-input" autocomplete="off" placeholder="Type a message..." 
+                        class="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-white/40 h-full px-2">
+
+                    <button type="submit" class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition shrink-0">
+                        <i class="fas fa-paper-plane text-xs translate-x-[1px] translate-y-[1px]"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- LOGIN OVERLAY -->
+            <div id="login-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-xl p-8 transition-all duration-500">
+                <div class="w-24 h-24 mb-8 relative">
+                    <div class="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-40 animate-pulse"></div>
+                    <img src="https://raw.githubusercontent.com/faizabdii123/Image/f22a685a540a28515b38b320ee982675e7087236/1763968977259.jpg" 
+                         class="w-full h-full rounded-full object-cover border-4 border-white/10 relative z-10">
+                </div>
+                
+                <h1 class="text-3xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">MyAfchat</h1>
+                <p class="text-white/50 text-sm mb-8">Join the cosmic conversation</p>
+
+                <div class="w-full max-w-xs space-y-4">
+                    <input type="text" id="username" placeholder="Enter your alias..." 
+                        class="w-full px-5 py-4 rounded-xl bg-white/5 border border-white/10 text-center text-white outline-none focus:border-cyan-500 transition-colors placeholder-white/20">
+                    
+                    <button onclick="login()" class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 font-bold text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transform hover:-translate-y-1 transition-all">
+                        ENTER GALAXY
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md border border-white/10 text-white px-6 py-3 rounded-full text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none z-[60] shadow-2xl flex items-center gap-2">
+        <i class="fas fa-info-circle text-cyan-400"></i>
+        <span id="toast-msg">Notification</span>
+    </div>
+
+    <audio id="msg-sound" src="https://assets.mixkit.co/active_storage/sfx/2346/2346-preview.m4a"></audio>
+
+    <script type="module">
+        // ------------------------------------------
+        // FIREBASE LOGIC (UNCHANGED)
+        // ------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, getDocs, deleteDoc } 
+        from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyArgYxNInVRfiCaG3X5PYFz8g5PUGrL6T4",
+            authDomain: "myafchat.firebaseapp.com",
+            projectId: "myafchat",
+            storageBucket: "myafchat.firebasestorage.app",
+            messagingSenderId: "579409083124",
+            appId: "1:579409083124:web:9e58c42318319c2dcafca1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const currentRoom = "main-chat"; 
+        let currentUser = "";
+        let isFirstLoad = true; 
+
+        // ------------------------------------------
+        // APP LOGIC
+        // ------------------------------------------
+
+        function initApp() {
+            const savedUser = sessionStorage.getItem('myafchat_user');
+            if (savedUser) { 
+                currentUser = savedUser; 
+                document.getElementById('username').value = savedUser;
+            }
+        }
+        initApp();
+
+        window.login = function() {
+            const name = document.getElementById('username').value.trim();
+            if (!name) return showToast("Please enter a name");
+            currentUser = name;
+            sessionStorage.setItem('myafchat_user', name);
+            
+            // Fade out login screen
+            const screen = document.getElementById('login-screen');
+            screen.style.opacity = '0';
+            setTimeout(() => {
+                screen.classList.add('hidden');
+                startChatListener();
+            }, 500);
+        };
+
+        // --- IMAGE HANDLING ---
+        window.handleImageSelect = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showToast("Compressing & Uploading...");
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Resize logic
+                    if (width > 800) {
+                        height *= 800 / width;
+                        width = 800;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Compress
+                    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+                    sendToDb(null, dataUrl, null);
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        };
+
+        // --- CALL HANDLING ---
+        window.startCall = function() {
+            const roomID = Math.random().toString(36).substring(7);
+            const callLink = `https://meet.jit.si/myafchat-${roomID}`;
+            sendToDb(null, null, callLink);
+        };
+
+        // --- SEND MSG ---
+        window.sendMessage = function(e) {
+            e.preventDefault();
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if (text) {
+                sendToDb(text, null, null);
+                input.value = "";
+                input.focus();
+            }
+        };
+
+        async function sendToDb(text, image, call) {
+            try {
+                await addDoc(collection(db, "messages"), { 
+                    text: text, 
+                    image: image,
+                    call: call,
+                    user: currentUser, 
+                    room: currentRoom, 
+                    createdAt: serverTimestamp() 
+                });
+            } catch (err) { console.error(err); showToast("Error sending message"); }
+        }
+
+        window.clearChat = async function() {
+            if(!confirm("Are you sure you want to delete all messages?")) return;
+            showToast("Clearing chat...");
+            const q = query(collection(db, "messages"), where("room", "==", currentRoom));
+            const snapshot = await getDocs(q);
+            snapshot.forEach(async (doc) => await deleteDoc(doc.ref));
+        };
+
+        function startChatListener() {
+            const q = query(collection(db, "messages"), where("room", "==", currentRoom), orderBy("createdAt", "asc"));
+            onSnapshot(q, (snapshot) => {
+                const feed = document.getElementById('chat-feed');
+                
+                // Keep track of scroll position logic could go here, but simple auto-scroll is fine for this scale
+                const wasAtBottom = feed.scrollTop >= (feed.scrollHeight - feed.offsetHeight - 50);
+
+                feed.innerHTML = ''; 
+                
+                if (!isFirstLoad) {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === "added" && change.doc.data().user !== currentUser) { 
+                            const audio = document.getElementById('msg-sound');
+                            audio.volume = 0.5;
+                            audio.play().catch(e=>{}); 
+                        }
+                    });
+                } else { isFirstLoad = false; }
+
+                if (snapshot.empty) {
+                    feed.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-full text-white/30">
+                            <i class="fas fa-wind text-4xl mb-3"></i>
+                            <p class="text-sm">No messages yet. Say hello!</p>
+                        </div>`;
+                }
+
+                snapshot.forEach((doc) => renderMessage(doc.data(), feed));
+
+                // Auto scroll smoothly
+                setTimeout(() => { 
+                    feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+                }, 100);
+            });
+        }
+
+        function getInitials(name) {
+            return name ? name.substring(0, 2).toUpperCase() : "??";
+        }
+
+        function renderMessage(msg, container) {
+            const isMe = msg.user === currentUser;
+            const div = document.createElement('div');
+            div.className = `flex w-full mb-4 msg-enter ${isMe ? 'justify-end' : 'justify-start'}`;
+            
+            let timeString = "";
+            if (msg.createdAt) { 
+                try { timeString = msg.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch(e){} 
+            }
+
+            // Avatar for other user
+            const avatarHtml = !isMe ? `
+                <div class="w-8 h-8 rounded-full avatar-initials shadow-lg mr-2 shrink-0 border border-white/20">
+                    ${getInitials(msg.user)}
+                </div>
+            ` : '';
+
+            let contentHtml = "";
+
+            // 1. CALL CARD
+            if (msg.call) {
+                contentHtml = `
+                    <div class="flex items-center gap-3 min-w-[200px]">
+                        <div class="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center animate-pulse">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-bold text-sm text-white">Video Call</p>
+                            <a href="${msg.call}" target="_blank" class="text-[10px] uppercase font-bold tracking-wider text-green-300 hover:text-green-200 mt-1 block">Click to Join</a>
+                        </div>
+                    </div>
+                `;
+            } 
+            // 2. IMAGE
+            else if (msg.image) {
+                contentHtml = `<img src="${msg.image}" class="rounded-lg w-full max-w-[240px] border border-white/10" loading="lazy">`;
+            } 
+            // 3. TEXT
+            else {
+                contentHtml = `<p class="leading-relaxed text-[15px]">${msg.text ? msg.text.replace(/</g, "&lt;") : ""}</p>`;
+            }
+
+            // Bubble Styling
+            const bubbleStyle = isMe 
+                ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm shadow-lg shadow-blue-500/10" 
+                : "bg-white/10 backdrop-blur-md text-slate-100 rounded-2xl rounded-tl-sm border border-white/5 shadow-lg";
+
+            div.innerHTML = `
+                ${avatarHtml}
+                <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]">
+                    ${!isMe ? `<span class="text-[10px] text-white/40 ml-1 mb-1">${msg.user}</span>` : ''}
+                    <div class="${bubbleStyle} px-4 py-2.5 break-words relative min-w-[60px]">
+                        ${contentHtml}
+                    </div>
+                    <span class="text-[9px] text-white/30 mt-1 mx-1">${timeString}</span>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        window.showToast = function(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.remove('opacity-0', 'translate-y-4');
+            setTimeout(() => { t.classList.add('opacity-0', 'translate-y-4'); }, 3000);
+        }
+    </script>
+</body>
+</html>
+
